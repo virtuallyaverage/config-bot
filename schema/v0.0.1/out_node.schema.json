@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://VRC-Haptics.github.io/mapping-schema/schema/v0.0.1/out_node.schema.json",
+  "title": "output_node_definition",
+  "description": "Defines all the information an output haptic node can carry. These are the nodes pushed to devices.",
+  "type": "object",
+  "properties": {
+    "location": {
+      "description": "Location of this node in the Manager's \"standard\" space",
+      "type": "array",
+      "prefixItems": [
+        {
+          "type": "number",
+          "description": "The X postion, Unity Coordinate system."
+        },
+        {
+          "type": "number",
+          "description": "The Y postion, Unity Coordinate system."
+        },
+        {
+          "type": "number",
+          "description": "The Z postion, Unity Coordinate system."
+        }
+      ],
+      "items": false
+    },
+    "interaction_tags": {
+      "description": "What tags this node should interact with. Without tags, a node WILL NOT output feedback",
+      "type": "array",
+      "items": {
+        "$ref": "https://VRC-Haptics.github.io/mapping-schema/schema/v0.0.1/node_group.schema.json"
+      },
+      "minItems": 1
+    },
+    "name": {
+      "description": "A short recognizable name for this node, Enforced to 10 characters maximum using utf-8 encoding. Very optional.",
+      "type": "string"
+    }
+  }
+}

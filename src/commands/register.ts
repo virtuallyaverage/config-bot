@@ -25,6 +25,14 @@ const data = new SlashCommandBuilder()
 async function execute(interaction: ChatInputCommandInteraction) {
   const name = interaction.options.getString(NAME, true);
 
+  if (name.toLowerCase() === "local") {
+    await interaction.reply({
+      content: `"local" is a reserved name, please choose a different one."`,
+      flags: MessageFlags.Ephemeral,
+    });
+    return;
+  }
+
   const existing = FindId.get(interaction.user.id) as Author | undefined;
   if (existing) {
     await interaction.reply({

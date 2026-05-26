@@ -1,0 +1,12 @@
+{
+    "schema": {
+        "standard": "https://json-schema.org/draft/2020-12/schema",
+        "provider": "https://vrc-haptics.github.io/mapping-schema",
+        "version-polling-hrs": 3,
+        "allowed-domains": [
+            "https://vrc-haptics.github.io/"
+        ]
+    },
+    "max-size": 10000000,
+    "max-pr-freq-hr": 6 
+}

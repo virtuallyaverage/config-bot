@@ -5,6 +5,7 @@ import { Octokit } from "octokit";
 // commands
 import { FileSubmit } from "./commands/submit.js";
 import { RegisterName } from "./commands/register.js";
+import { LoadSchemas } from "./caching.js";
 
 const commands = [FileSubmit, RegisterName];
 
@@ -55,6 +56,9 @@ const octokit =  new Octokit({
 const { data: {login: username}} = await octokit.rest.users.getAuthenticated();
 
 console.log("Signed into Github as: `%s`", username);
+
+LoadSchemas();
+console.log("schemas loaded");
 
 
 

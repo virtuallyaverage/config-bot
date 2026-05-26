@@ -1,0 +1,75 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://VRC-Haptics.github.io/mapping-schema/schema/v0.0.1/map.schema.json",
+  "title": "haptic_game_integration",
+  "description": "Defines how and where haptic inputs are coming from in a game.",
+  "type": "object",
+  "properties": {
+    "identification": {
+      "description": "A group of defining features that are used to load configurations when an avatar is detected. All maps with the same name are expected to be compatible, with the latest as a default.",
+      "type": "object",
+      "properties": {
+        "author_name": {
+          "description": "The name of the author of the map, all map names must be unique for a author. Please use a screen name",
+          "type": "string"
+        },
+        "map_name": {
+          "description": "The name of this map. usually some identifiying information",
+          "type": "string"
+        },
+        "map_version": {
+          "description": "Increments with each version change.",
+          "type": "integer"
+        },
+        "author_id": {
+          "description": "Author UUID assigned by the official distribution system. Work in Progress, currently does nothing",
+          "type": "string"
+        },
+        "custom_repository": {
+          "description": "Custom github repository that will be used to look for newer versions or patches of this map. Only Github pages with default domains are accepted for some semblance of security",
+          "type": "object",
+          "properties": {
+            "author": {
+              "type": "string"
+            },
+            "repository": {
+              "type": "string"
+            },
+            "index_file": {
+              "description": "URL path from the gh-pages base to your index.json file. URL path must end in index.json",
+              "type": "string"
+            }
+          }
+        }
+      },
+      "required": [
+        "author_name",
+        "map_name",
+        "map_version"
+      ]
+    },
+    "input_nodes": {
+      "description": "Nodes that represent data input FROM the game",
+      "type": "array",
+      "items": {
+        "$ref": "https://VRC-Haptics.github.io/mapping-schema/schema/v0.0.1/in_node.schema.json",
+        "uniqueItems": true,
+        "minItems": 0
+      }
+    },
+    "output_nodes": {
+      "description": "Nodes that will be associated with an output device. Inidices determine order transmitted to devices, changing the order effectively ",
+      "type": "array",
+      "items": {
+        "$ref": "https://VRC-Haptics.github.io/mapping-schema/schema/v0.0.1/out_node.schema.json",
+        "uniqueItems": true,
+        "minItems": 0
+      }
+    }
+  },
+  "required": [
+    "identification",
+    "input_nodes",
+    "output_nodes"
+  ]
+}
