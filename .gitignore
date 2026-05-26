@@ -1,0 +1,26 @@
+# macOS settings file 
+.DS_Store
+
+node_modules
+
+# Don't commit db
+/db/*
+/build
+
+# Deal with environment files
+.env
+.env.*
+
+# ALLOW EXAMPLE
+!.env.example
+
+# Coverage directory used by testing tools
+coverage
+
+# Visual Studio Code configuration
+.vscode/
+
+# npm and yarn debug logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
