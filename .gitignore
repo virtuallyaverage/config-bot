@@ -6,6 +6,7 @@ node_modules
 # Don't commit db
 /db/*
 /build
+/schema/*
 
 # Deal with environment files
 .env
