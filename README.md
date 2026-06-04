@@ -3,7 +3,7 @@ Uses `pnpm`
 `pnpm run dev`
 
 `pnpm run build`
-`pnpm run start`
+`pnpm run dev`
 
 Needs A .env with this format: 
 ```.env

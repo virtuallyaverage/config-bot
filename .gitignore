@@ -6,6 +6,8 @@ node_modules
 # Don't commit db
 /db/*
 /build
+/dist
+/validated/*
 /schema/*
 
 # Deal with environment files

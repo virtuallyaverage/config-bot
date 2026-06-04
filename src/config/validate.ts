@@ -7,6 +7,7 @@ export interface ValidateResult {
   reason: ReasonInvalid;
   line: number;
   errors?: ErrorObject[] | undefined | null;
+  file: Record<string, unknown> | null;
 }
 
 export enum ReasonInvalid {
@@ -20,6 +21,7 @@ export enum ReasonInvalid {
   InvalidVersion,
   VersionNotCached,
   SchemaViolation,
+  SchemaLoadFailed,
 }
 
 export const ReasonMessages: Record<ReasonInvalid, string> = {
@@ -33,38 +35,43 @@ export const ReasonMessages: Record<ReasonInvalid, string> = {
   [ReasonInvalid.InvalidVersion]: "Schema version format is invalid",
   [ReasonInvalid.VersionNotCached]: "Schema version is not available",
   [ReasonInvalid.SchemaViolation]: "Content does not match the schema",
+  [ReasonInvalid.SchemaLoadFailed]: "Unable to load schema for map version (possibly server error)",
 };
 
 export async function Validate(file: Attachment): Promise<ValidateResult> {
   // download file
   if (!file.contentType?.startsWith("application/json")) {
-    return { reason: ReasonInvalid.InvalidFormat, line: 0 };
+    return { reason: ReasonInvalid.InvalidFormat, line: 0, file: null };
   }
 
   if (file.size > settings["max-size"]) {
-    return { reason: ReasonInvalid.TooLarge, line: file.size };
+    return { reason: ReasonInvalid.TooLarge, line: file.size, file: null };
   }
 
   var content;
   try {
     const response = await fetch(file.url);
+    if (!response.ok) {
+      return { reason: ReasonInvalid.FetchingContent, line: response.status, file: null };
+    }
     content = await response.text();
   } catch {
-    return { reason: ReasonInvalid.FetchingContent, line: 0 };
+    return { reason: ReasonInvalid.FetchingContent, line: 0, file: null };
   }
 
-  var parsed;
+  var parsed: Record<string, unknown>;
   try {
     parsed = JSON.parse(content);
   } catch {
-    return { reason: ReasonInvalid.JsonInvalid, line: 0 };
+    return { reason: ReasonInvalid.JsonInvalid, line: 0, file: null };
   }
 
+  // validate it conforms to a schema version
   const res = await ValidateSchema(parsed);
-
   if (res.reason != ReasonInvalid.None) {
     return res;
   }
 
-  return { reason: ReasonInvalid.None, line: 0 };
+  // TODO: Migrate if version not latest
+  return { reason: ReasonInvalid.None, line: 0, file: parsed };
 }

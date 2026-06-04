@@ -1,6 +1,8 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import { join, dirname } from "path";
 import settings from "../settings.json";
+import { markMerged, unpushedMaps } from "./config/local.js";
+import { MakePr } from "./github/fetch.js";
 
 var versions_url = `${settings.schema.provider}/schema/versions.json`;
 const SCHEMA_DIR = join(process.cwd(), "schema");
@@ -8,7 +10,8 @@ const SCHEMA_DIR = join(process.cwd(), "schema");
 const ALLOWED_DOMAINS = ["vrc-haptics.github.io/mapping-schema/"];
 
 interface VersionsFile {
-  "schema-versions": string[];
+  schemaVersions: string[];
+  deprecatedVersions?: string[];
 }
 
 function isAllowedUrl(url: string): boolean {
@@ -44,15 +47,10 @@ async function fetchJson<T>(url: string): Promise<T> {
   return res.json() as Promise<T>;
 }
 
-function getCachedVersions(): string[] {
-  const path = join(SCHEMA_DIR, "versions.json");
-  if (!existsSync(path)) return [];
-  try {
-    const data = JSON.parse(readFileSync(path, "utf-8")) as VersionsFile;
-    return data["schema-versions"] ?? [];
-  } catch {
-    return [];
-  }
+async function fetchText(url: string): Promise<string> {
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`Failed to fetch ${url}: ${res.status}`);
+  return res.text();
 }
 
 function ensureDir(path: string) {
@@ -98,23 +96,80 @@ async function fetchSchemaWithRefs(
   }
 }
 
+// Fetch a per-version script (up.js / down.js) only if not already on disk.
+async function ensureScript(version: string, name: string): Promise<boolean> {
+  const localPath = join(SCHEMA_DIR, version, name);
+  if (existsSync(localPath)) return false;
+  const url = `${settings.schema.provider}/schema/${version}/${name}`;
+  if (!isAllowedUrl(url)) {
+    console.warn(`Skipping disallowed URL: ${url}`);
+    return false;
+  }
+  const text = await fetchText(url);
+  ensureDir(dirname(localPath));
+  writeFileSync(localPath, text);
+  console.log(`Cached: ${version}/${name}`);
+  return true;
+}
+
+// Fetch a deprecated migration script only if not already on disk.
+async function ensureDeprecatedScript(version: string): Promise<boolean> {
+  const file = `${version}.js`;
+  const localPath = join(SCHEMA_DIR, "deprecated", file);
+  if (existsSync(localPath)) return false;
+  const url = `${settings.schema.provider}/schema/deprecated/${file}`;
+  if (!isAllowedUrl(url)) {
+    console.warn(`Skipping disallowed URL: ${url}`);
+    return false;
+  }
+  const text = await fetchText(url);
+  ensureDir(dirname(localPath));
+  writeFileSync(localPath, text);
+  console.log(`Cached: deprecated/${file}`);
+  return true;
+}
+
 async function poll(): Promise<void> {
   try {
-    const remote = await fetchJson<VersionsFile>(versions_url);
-    const remoteVersions = remote["schema-versions"] ?? [];
-    const cachedVersions = getCachedVersions();
+    const maps = await unpushedMaps();
 
-    const newVersions = remoteVersions.filter((v) => !cachedVersions.includes(v));
-
-    if (newVersions.length === 0) {
-      console.log("Schemas up to date.");
-      return;
+    if (maps.maps.length > 0) {
+      console.log("Pushing maps to pr");
+      const prNum = await MakePr(maps);
+      maps.refs.forEach(async ref => {
+        await markMerged(ref);
+      });
     }
 
-    console.log(`New schema versions found: ${newVersions.join(", ")}`);
+    const remote = await fetchJson<VersionsFile>(versions_url);
+    const remoteVersions = remote.schemaVersions ?? [];
+    const remoteDeprecated = remote.deprecatedVersions ?? [];
 
-    for (const version of newVersions) {
-      await fetchSchemaWithRefs(version);
+    let fetched = false;
+
+    for (let i = 0; i < remoteVersions.length; i++) {
+      const version = remoteVersions[i];
+      if (!version) continue;
+
+      // Schema (+ refs): fetch if the entry schema is missing locally.
+      if (!existsSync(join(SCHEMA_DIR, version, "map.schema.json"))) {
+        await fetchSchemaWithRefs(version);
+        fetched = true;
+      }
+
+      // up.js for every version except the first; down.js except the last.
+      if (i > 0) fetched = (await ensureScript(version, "up.js")) || fetched;
+      if (i < remoteVersions.length - 1)
+        fetched = (await ensureScript(version, "down.js")) || fetched;
+    }
+
+    for (const version of remoteDeprecated) {
+      fetched = (await ensureDeprecatedScript(version)) || fetched;
+    }
+
+    if (!fetched) {
+      console.log("Schemas up to date.");
+      return;
     }
 
     // Write updated versions.json only after all fetches succeed

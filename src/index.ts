@@ -9,6 +9,13 @@ import { LoadSchemas } from "./caching.js";
 
 const commands = [FileSubmit, RegisterName];
 
+// Initialize github
+export const OCTOKIT: Octokit =  new Octokit({ 
+  auth: process.env.GITHUB_TOKEN,
+  userAgent: "Discord-Config-Bot/v0.0.0",
+});
+const { data: {login: username}} = await OCTOKIT.rest.users.getAuthenticated();
+
 // Initialize Discord
 const client = new Client({
   intents: [
@@ -46,20 +53,10 @@ client.on(Events.InteractionCreate, async (interaction) => {
   });
 });
 
+
 client.login(process.env.DISCORD_TOKEN);
 
-// Initialize github
-const octokit =  new Octokit({ 
-  auth: process.env.GITHUB_TOKEN,
-  userAgent: "Discord-Config-Bot/v0.0.0",
-});
-const { data: {login: username}} = await octokit.rest.users.getAuthenticated();
-
-console.log("Signed into Github as: `%s`", username);
-
+// starts polling for github pr so has to be after this
 LoadSchemas();
 console.log("schemas loaded");
-
-
-
 
