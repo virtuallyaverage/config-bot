@@ -5,6 +5,7 @@ node_modules
 
 # Don't commit db
 /db/*
+!/db/.gitkeep
 /build
 /dist
 /validated/*
